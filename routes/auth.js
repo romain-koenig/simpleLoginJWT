@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const User = require('../model/user');
+const bcrypt = require('bcryptjs');
 
 const {registerValidation, loginValidation} = require('../validation');
 
@@ -20,12 +21,16 @@ router.post('/register', async (req, res) => {
     return res.status(400).send('email already exists');
   }
 
+  //Hash password
+  const salt = await bcrypt.genSalt(10);  
+  const hashPassword = await bcrypt.hash(req.body.password, salt);
+
   console.log('Into API /register')
   const user = new User(
     {
       name: req.body.name,
       email: req.body.email,
-      password: req.body.password,
+      password: hashPassword,
     });
   console.log(user);
 
