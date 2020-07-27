@@ -1,23 +1,17 @@
 const router = require('express').Router();
 const User = require('../model/user');
 
-//validation
-const Joi = require('@hapi/joi');
-
-const schema = Joi.object({
-  name: Joi.string().min(6).required(),
-  email: Joi.string().min(6).required().email(),
-  password: Joi.string().min(6).required(),
-});
+const validation = require('../validation');
 
 router.post('/register', async (req, res) => {
 
-  //Data validation before asving.
-
-  const { error } = schema.validate(req.body);
+  //Data validation before saving.
+  const { error } = validation.registerValidation(req.body);
+  
   if (error) {
     return res.status(400).send(error.details[0].message)
   }
+
   console.log('Into API /register')
   const user = new User(
     {
@@ -37,6 +31,5 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login');
-
 
 module.exports = router;
