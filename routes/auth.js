@@ -2,7 +2,7 @@ const router = require('express').Router();
 const User = require('../model/user');
 const bcrypt = require('bcryptjs');
 
-const {registerValidation, loginValidation} = require('../validation');
+const { registerValidation, loginValidation } = require('../validation');
 
 router.post('/register', async (req, res) => {
 
@@ -15,34 +15,70 @@ router.post('/register', async (req, res) => {
 
   //Check if user is already in database
 
-  const emailAlreadyExists = await User.findOne({email: req.body.email})
+  const emailAlreadyExists = await User.findOne({ email: req.body.email })
 
   if (emailAlreadyExists) {
     return res.status(400).send('email already exists');
   }
 
   //Hash password
-  const salt = await bcrypt.genSalt(10);  
-  const hashPassword = await bcrypt.hash(req.body.password, salt);
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
   console.log('Into API /register')
   const user = new User(
     {
       name: req.body.name,
       email: req.body.email,
-      password: hashPassword,
+      password: hashedPassword,
     });
   console.log(user);
 
   try {
     const savedUser = await user.save();
-    res.send(savedUser);
+    res.send({
+      message: "User created",
+      user: {
+        userid: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
   }
   catch (err) {
     res.status(400).send(err);
   }
 });
 
-router.post('/login');
+router.post('/login', async (req, res) => {
+  //Data validation before login.
+  const { error } = loginValidation(req.body);
+
+  if (error) {
+    return res.status(400).send(error.details[0].message)
+  }
+
+  //Check if user is already known
+
+  const dbUser = await User.findOne({ email: req.body.email })
+
+  const LOGIN_ERROR_MESSAGE = 'User email or password is wrong';
+  if (!dbUser) {
+    return res.status(400).send(LOGIN_ERROR_MESSAGE || 'email is not found');
+  }
+
+  //Check if password is correct
+
+   const validPassword = await bcrypt.compare(req.body.password, dbUser.password);
+
+   if (!validPassword){
+    return res.status(400).send(LOGIN_ERROR_MESSAGE || 'password is wrong');
+  }
+
+  return res.send(`User ${dbUser.email} logged in`);
+
+
+
+});
 
 module.exports = router;
